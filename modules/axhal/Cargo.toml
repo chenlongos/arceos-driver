@@ -76,7 +76,6 @@ arm_pl011 = "0.1"
 arm_pl031 = { version = "0.2", optional = true }
 dw_apb_uart = "0.1"
 smccc = "0.2"
-arm_gicv2 = { git = "https://github.com/arceos-hypervisor/arm_gicv2" }
 
 [target.'cfg(target_arch = "loongarch64")'.dependencies]
 loongArch64 = "0.2.4"
