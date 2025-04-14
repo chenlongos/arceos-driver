@@ -545,8 +545,8 @@ dependencies = [
  "page_table_entry",
  "page_table_multiarch",
  "percpu",
- "raw-cpuid 11.5.0",
- "riscv 0.12.1",
+ "raw-cpuid 11.4.0",
+ "riscv",
  "riscv_goldfish",
  "riscv_plic",
  "sbi-rt",
@@ -566,6 +566,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30aa258a37c25c5e9d3ff45ec80e728ff7c499586e3e40719daf7908f10fd5bd"
 dependencies = [
  "axerrno",
+]
+
+[[package]]
+name = "axipi"
+version = "0.1.0"
+dependencies = [
+ "axconfig",
+ "axhal",
+ "kspin",
+ "lazyinit",
+ "log",
+ "percpu",
 ]
 
 [[package]]
@@ -1717,18 +1729,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
-name = "percpu"
-version = "0.2.0"
-source = "git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base#b4e3aa009de9af579eb06bac9bca2bd1a6b1d0b8"
-dependencies = [
- "cfg-if",
- "kernel_guard",
- "percpu_macros",
- "spin 0.9.8",
- "x86",
-]
-
-[[package]]
 name = "percpu_macros"
 version = "0.2.0"
 source = "git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base#b4e3aa009de9af579eb06bac9bca2bd1a6b1d0b8"
@@ -1747,23 +1747,10 @@ dependencies = [
  "bitflags 2.9.1",
  "bytemuck",
  "cfg-if",
- "lazy_static",
- "log",
- "nb",
- "rlsf",
- "spin 0.10.0",
- "tock-registers 0.9.0",
-]
-
-[[package]]
-name = "phytium_driver_block"
-version = "0.1.0"
-source = "git+https://github.com/arceos-hypervisor/phytium_driver_crates?rev=a8bc146#a8bc14608dc13935d28a2ae8841b7b0680f821b9"
-dependencies = [
- "dma-api 0.2.2",
- "log",
- "phytium-mci",
- "rdrive",
+ "kernel_guard",
+ "percpu_macros",
+ "spin",
+ "x86",
 ]
 
 [[package]]
