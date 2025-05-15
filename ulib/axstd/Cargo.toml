@@ -27,7 +27,11 @@ fp_simd = ["axfeat/fp_simd"]
 
 # Interrupts
 irq = ["arceos_api/irq", "axfeat/irq"]
+<<<<<<< HEAD
 gicv3 = ["axfeat/gicv3", "alloc"]
+=======
+gicv3 = ["axfeat/gicv3","alloc"]
+>>>>>>> 20d52d36 (Add GICv3 Support (#49))
 
 # Memory
 alloc = ["arceos_api/alloc", "axfeat/alloc", "axio/alloc"]
