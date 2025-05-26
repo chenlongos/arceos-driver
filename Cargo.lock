@@ -221,12 +221,12 @@ dependencies = [
 
 [[package]]
 name = "arm-gic-driver"
-version = "0.13.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b64cb8c26b31e99dd8af567e32f33b9f5f69673170f4416c3c80c4f0a09187b4"
+checksum = "3be20d5253a221975e41674d35169a6f67887b012490b9e1ab33d7369caa7332"
 dependencies = [
  "aarch64-cpu 10.0.0",
- "bitflags 2.9.1",
+ "bitflags 2.8.0",
  "enum_dispatch",
  "log",
  "rdif-intc",
@@ -519,6 +519,7 @@ name = "axhal"
 version = "0.1.0"
 dependencies = [
  "aarch64-cpu 10.0.0",
+ "arm-gic-driver",
  "arm_gicv2",
  "arm_pl011",
  "arm_pl031",
@@ -1137,16 +1138,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 
 [[package]]
-name = "embedded-hal-nb"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fba4268c14288c828995299e59b12babdbe170f6c6d73731af1b4648142e8605"
-dependencies = [
- "embedded-hal",
- "nb",
-]
-
-[[package]]
 name = "enum_dispatch"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1155,7 +1146,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.102",
+ "syn 2.0.98",
 ]
 
 [[package]]
@@ -1894,119 +1885,23 @@ version = "11.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6df7ab838ed27997ba19a4664507e6f82b41fe6e20be42929332156e5e85146"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.8.0",
 ]
 
 [[package]]
 name = "rdif-base"
-version = "0.5.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1eebdadebd31279dc6e240fef7bb0341ef09de1be05463553a11f1cfe1e9279a"
-dependencies = [
- "async-trait",
- "rdif-def",
- "thiserror",
-]
-
-[[package]]
-name = "rdif-block"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64356f70a70a70a9c361da15e1009056964960dd71f04a6a82939f949d8293cb"
-dependencies = [
- "cfg-if",
- "rdif-base",
-]
-
-[[package]]
-name = "rdif-clk"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47cb808121537a6cfb55df232efdaf18e173fa9805e3285cfe21b8837a0d541b"
-dependencies = [
- "rdif-base",
-]
-
-[[package]]
-name = "rdif-def"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c238eb44d86fabc99028adc973f896ce2202aeb6184cc8b89863f2d157d7ca06"
-dependencies = [
- "thiserror",
-]
+checksum = "023bd968dcec1d1d01092fdf0e6473cd4fee4b3a4140e524d5952cf332882a36"
 
 [[package]]
 name = "rdif-intc"
-version = "0.10.0"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c38f384a6e9001670f74ccf5c69ad2becfe29ae72a4469d6250041b280a4822d"
+checksum = "a4dce859ee52f984c78d41f647eb3266e58824e385583ae64a5467597c84fd5a"
 dependencies = [
  "cfg-if",
  "rdif-base",
- "thiserror",
-]
-
-[[package]]
-name = "rdif-power"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae3b558cfcd7b9bd2515fe8ffa4c235c2627f969a0466391ef8b6726a82e4f5b"
-dependencies = [
- "rdif-base",
-]
-
-[[package]]
-name = "rdif-serial"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65e0dcf317551e78e506170b03292b5b986ecc7a2c8e7e4578c6b79c8c3be2ba"
-dependencies = [
- "futures",
- "rdif-base",
- "spin_on",
- "thiserror",
-]
-
-[[package]]
-name = "rdif-systick"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c01ea42012cc743e5ac4b9660056e4f6aa8873d49c7a28e1886c1929bba81e95"
-dependencies = [
- "rdif-base",
-]
-
-[[package]]
-name = "rdrive"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45635f196415cc8f05d4f37e4328bd8751b964420c15399344d6bf880540b31b"
-dependencies = [
- "fdt-parser",
- "log",
- "paste",
- "rdif-base",
- "rdif-block",
- "rdif-clk",
- "rdif-intc",
- "rdif-power",
- "rdif-serial",
- "rdif-systick",
- "rdrive-macros",
- "spin 0.10.0",
- "thiserror",
-]
-
-[[package]]
-name = "rdrive-macros"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a410b3ae41803a2290e428d0683dcef451def835e9cbf293c203c3ac86b19e18"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.102",
 ]
 
 [[package]]
