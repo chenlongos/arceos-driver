@@ -187,8 +187,8 @@ pub extern "C" fn rust_main(cpu_id: usize) -> ! {
 
     #[cfg(feature = "irq")]
     {
-        info!("Initialize interrupt handlers...");
-        init_interrupt();
+        // info!("Initialize interrupt handlers...");
+        // init_interrupt();
     }
 
     #[cfg(all(feature = "tls", not(feature = "multitask")))]
