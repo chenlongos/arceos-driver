@@ -5,8 +5,11 @@ use alloc::boxed::Box;
 use arm_gic_driver::*;
 use axconfig::devices::{GICD_PADDR, GICR_PADDR, UART_IRQ};
 <<<<<<< HEAD
+<<<<<<< HEAD
 use core::ptr::NonNull;
 =======
+=======
+>>>>>>> 12d41ed8 (Merge remote-tracking branch 'origin/vmm_irq_gicv3' into vmm_inject_interrupt_vgicv3)
 use core::{panic, ptr::NonNull};
 >>>>>>> bce33b9e (Merge branch 'vmm' into vmm_irq_gicv3)
 use kspin::SpinNoIrq;
