@@ -1276,6 +1276,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "gicv3_tester"
+version = "0.1.0"
+dependencies = [
+ "axstd",
+]
+
+[[package]]
 name = "glob"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1884,37 +1891,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6df7ab838ed27997ba19a4664507e6f82b41fe6e20be42929332156e5e85146"
 dependencies = [
  "bitflags 2.9.1",
-]
-
-[[package]]
-name = "rdif-base"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1eebdadebd31279dc6e240fef7bb0341ef09de1be05463553a11f1cfe1e9279a"
-dependencies = [
- "async-trait",
- "rdif-def",
- "thiserror",
-]
-
-[[package]]
-name = "rdif-def"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c238eb44d86fabc99028adc973f896ce2202aeb6184cc8b89863f2d157d7ca06"
-dependencies = [
- "thiserror",
-]
-
-[[package]]
-name = "rdif-intc"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c38f384a6e9001670f74ccf5c69ad2becfe29ae72a4469d6250041b280a4822d"
-dependencies = [
- "cfg-if",
- "rdif-base",
- "thiserror",
 ]
 
 [[package]]
