@@ -1,12 +1,12 @@
-use crate::{arch::disable_irqs, cpu::this_cpu_id, irq::IrqHandler, mem::phys_to_virt};
+extern crate alloc;
+
+use crate::{arch::disable_irqs, irq::IrqHandler, mem::phys_to_virt};
+use alloc::boxed::Box;
 use arm_gic_driver::*;
-use axconfig::devices::{GICC_PADDR, GICD_PADDR, GICR_PADDR, UART_IRQ};
+use axconfig::devices::{GICD_PADDR, GICR_PADDR, UART_IRQ};
 use core::ptr::NonNull;
 use kspin::SpinNoIrq;
-use memory_addr::{MemoryAddr, PhysAddr};
-
-use aarch64_cpu::registers::{ICC_SRE_EL2, SCTLR_EL3::I};
-use tock_registers::interfaces::{Readable, Writeable};
+use memory_addr::PhysAddr;
 
 /// The maximum number of IRQs.
 pub const MAX_IRQ_COUNT: usize = 1024;
@@ -23,23 +23,35 @@ pub const TIMER_IRQ_NUM: usize = arm_gic_driver::IntId::ppi(10).to_u32() as usiz
 pub const UART_IRQ_NUM: usize = arm_gic_driver::IntId::spi(UART_IRQ as u32).to_u32() as usize;
 
 const GICD_BASE: PhysAddr = pa!(GICD_PADDR);
-const GICC_BASE: PhysAddr = pa!(GICC_PADDR);
 const GICR_BASE: PhysAddr = pa!(GICR_PADDR);
 
 static GICD: SpinNoIrq<Option<arm_gic_driver::v3::Gic>> = SpinNoIrq::new(None);
-static GICC: SpinNoIrq<Option<Box<dyn InterfaceCPU>>> = SpinNoIrq::new(None);
+static GICR: SpinNoIrq<Option<Box<dyn arm_gic_driver::local::Interface>>> = SpinNoIrq::new(None);
 
 /// Enables or disables the given IRQ.
 pub fn set_enable(irq_num: usize, enabled: bool) {
-    trace!("GICD set enable: {} {}", irq_num, enabled);
+    use arm_gic_driver::local::cap::ConfigLocalIrq;
 
-    // let mut gicd = GICD.lock();
-    // let d = gicd.as_mut().unwrap();
-    // if enabled {
-    //     d.irq_enable(irq_num.into());
-    // } else {
-    //     d.irq_disable(irq_num.into());
-    // }
+    let mut gicd = GICD.lock();
+    let d = gicd.as_mut().unwrap();
+
+    if irq_num < 32 {
+        trace!("GICR set enable: {} {}", irq_num, enabled);
+
+        if enabled {
+            d.get_gicr().irq_enable(irq_num.into()).unwrap();
+        } else {
+            d.get_gicr().irq_disable(irq_num.into()).unwrap();
+        }
+    } else {
+        trace!("GICD set enable: {} {}", irq_num, enabled);
+
+        if enabled {
+            d.irq_enable(irq_num.into()).unwrap();
+        } else {
+            d.irq_disable(irq_num.into()).unwrap();
+        }
+    }
 }
 
 /// Registers an IRQ handler for the given IRQ.
@@ -53,7 +65,7 @@ pub fn register_handler(irq_num: usize, handler: IrqHandler) -> bool {
 
 /// Fetches the IRQ number.
 pub fn fetch_irq() -> usize {
-    GICC.lock()
+    GICR.lock()
         .as_mut()
         .unwrap()
         .ack()
@@ -69,70 +81,46 @@ pub fn fetch_irq() -> usize {
 pub fn dispatch_irq(irq_num: usize) {
     let intid: Option<IrqId>;
     if irq_num == 0 {
-        intid = GICC.lock().as_mut().unwrap().ack();
-        info!("interrupt {:?}", intid.unwrap());
+        intid = GICR.lock().as_mut().unwrap().ack();
+        trace!("interrupt {:?}", intid.unwrap());
     } else {
         intid = Some(IrqId::from(irq_num));
     }
     if let Some(intid) = intid {
         crate::irq::dispatch_irq_common(intid.into());
-        GICC.lock().as_mut().unwrap().eoi(intid);
+        GICR.lock().as_mut().unwrap().eoi(intid);
     }
 }
 
-const GICR_WAKER_PSLEEP_BIT: usize = 0x2;
-const GICR_WAKER_CASLEEP_BIT: usize = 0x4;
-const GICR_WAKER_OFFSET: usize = 0x14;
-
-fn wake_up_gicr(cpu_id: usize) {
-    let cur_gicr_base = phys_to_virt(GICR_BASE).add(cpu_id * 0x20000);
-
-    debug!("CPU {} GICR base: {:#x}", cpu_id, cur_gicr_base);
-
-    let gicr_waker = cur_gicr_base.add(GICR_WAKER_OFFSET).as_mut_ptr_of::<u32>();
-
-    unsafe {
-        // Set the GICR WAKER register to wake up the CPU.
-        *gicr_waker &= !(GICR_WAKER_PSLEEP_BIT as u32);
-
-        // Wait until the GICR WAKER register is not in sleep state.
-        while (*gicr_waker & GICR_WAKER_CASLEEP_BIT as u32) != 0 {
-            // Spin until the CPU is awake.
-        }
-    }
-}
-
-/// Initializes GICD, GICC on the primary CPU.
+/// Initializes GICD, GICR on the primary CPU.
 pub(crate) fn init_primary() {
-    warn!("Initialize GICv3...");
+    info!("Initialize GICv3...");
+    let mut gicd = arm_gic_driver::v3::Gic::new(
+        NonNull::new(phys_to_virt(GICD_BASE).as_mut_ptr()).unwrap(),
+        NonNull::new(phys_to_virt(GICR_BASE).as_mut_ptr()).unwrap(),
+        arm_gic_driver::v3::Security::OneNS,
+    );
 
-    // wake_up_gicr(this_cpu_id());
+    debug!("Initializing GICD at {:#x}", GICD_BASE);
+    gicd.open().unwrap();
 
-    // SAFETY: Set the SRE[0] bit to 1 to enable Group 1 interrupts.
-    ICC_SRE_EL2.set(0b1);
+    debug!(
+        "Initializing GICR for BSP. Global GICR base at {:#x}",
+        GICR_BASE
+    );
+    let mut interface = gicd.cpu_local().unwrap();
+    interface.open().unwrap();
 
-    // let waker = self[current_cpu().id].WAKER.get();
-    // self[current_cpu().id].WAKER.set(waker & !GICR_WAKER_PSLEEP_BIT as u32);
-    // while (self[current_cpu().id].WAKER.get() & GICR_WAKER_CASLEEP_BIT as u32) != 0 {}
+    GICD.lock().replace(gicd);
+    GICR.lock().replace(interface);
 
-    // let gicd = arm_gic_driver::v3::Gic::new(
-    //     NonNull::new(phys_to_virt(GICD_BASE).as_mut_ptr()).unwrap(),
-    //     NonNull::new(phys_to_virt(GICC_BASE).as_mut_ptr()).unwrap(),
-    //     arm_gic_driver::v3::Security::OneNS,
-    // );
-    // let interface = gicd.cpu_interface();
-
-    // GICD.lock().replace(gicd);
-    // GICC.lock().replace(interface);
-
-    // disable_irqs();
+    disable_irqs();
 }
 
-/// Initializes GICC on secondary CPUs.
+/// Initializes GICR on secondary CPUs.
 #[cfg(feature = "smp")]
 pub(crate) fn init_secondary() {
-    // let interface = GICD.lock().as_mut().unwrap().cpu_interface();
-    // GICC.lock().replace(interface);
-    // GICC.lock().as_mut().unwrap().setup();
-    // wake_up_gicr(this_cpu_id());
+    let mut interface = GICD.lock().as_mut().unwrap().cpu_local().unwrap();
+    interface.open().unwrap();
+    GICR.lock().replace(interface);
 }
