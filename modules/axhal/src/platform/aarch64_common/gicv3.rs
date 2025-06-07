@@ -4,7 +4,11 @@ use crate::{arch::disable_irqs, irq::IrqHandler, mem::phys_to_virt};
 use alloc::boxed::Box;
 use arm_gic_driver::*;
 use axconfig::devices::{GICD_PADDR, GICR_PADDR, UART_IRQ};
+<<<<<<< HEAD
 use core::ptr::NonNull;
+=======
+use core::{panic, ptr::NonNull};
+>>>>>>> bce33b9e (Merge branch 'vmm' into vmm_irq_gicv3)
 use kspin::SpinNoIrq;
 use memory_addr::PhysAddr;
 

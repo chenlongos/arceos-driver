@@ -1918,6 +1918,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "rdif-base"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1eebdadebd31279dc6e240fef7bb0341ef09de1be05463553a11f1cfe1e9279a"
+dependencies = [
+ "async-trait",
+ "rdif-def",
+ "thiserror",
+]
+
+[[package]]
+name = "rdif-def"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c238eb44d86fabc99028adc973f896ce2202aeb6184cc8b89863f2d157d7ca06"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
+name = "rdif-intc"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c38f384a6e9001670f74ccf5c69ad2becfe29ae72a4469d6250041b280a4822d"
+dependencies = [
+ "cfg-if",
+ "rdif-base",
+ "thiserror",
+]
+
+[[package]]
 name = "regex"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
