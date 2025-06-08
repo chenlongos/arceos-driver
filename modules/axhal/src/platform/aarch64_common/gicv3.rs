@@ -1,7 +1,7 @@
 extern crate alloc;
 
-use crate::{arch::disable_irqs, irq::IrqHandler, mem::phys_to_virt};
 use alloc::boxed::Box;
+use crate::{arch::disable_irqs, cpu::this_cpu_id, irq::IrqHandler, mem::phys_to_virt};
 use arm_gic_driver::*;
 use axconfig::devices::{GICD_PADDR, GICR_PADDR, UART_IRQ};
 <<<<<<< HEAD
@@ -13,7 +13,17 @@ use core::ptr::NonNull;
 use core::{panic, ptr::NonNull};
 >>>>>>> bce33b9e (Merge branch 'vmm' into vmm_irq_gicv3)
 use kspin::SpinNoIrq;
+<<<<<<< HEAD
 use memory_addr::PhysAddr;
+=======
+use arm_gicv2::{translate_irq, InterruptType};
+#[cfg(feature = "hv")]
+use arm_gicv2::GicHypervisorInterface;
+use memory_addr::{MemoryAddr, PhysAddr};
+
+use aarch64_cpu::registers::{ICC_SRE_EL2, SCTLR_EL3::I};
+use tock_registers::interfaces::{Readable, Writeable};
+>>>>>>> 1d8c08b4 (Merge remote-tracking branch 'origin/rk3588_jd4_qemu' into vmm_inject_interrupt_vgicv3)
 
 /// The maximum number of IRQs.
 pub const MAX_IRQ_COUNT: usize = 1024;
@@ -121,7 +131,24 @@ pub(crate) fn init_primary() {
     GICD.lock().replace(gicd);
     GICR.lock().replace(interface);
 
-    disable_irqs();
+    // SAFETY: Set the SRE[0] bit to 1 to enable Group 1 interrupts.
+    ICC_SRE_EL2.set(0b1);
+
+    // let waker = self[current_cpu().id].WAKER.get();
+    // self[current_cpu().id].WAKER.set(waker & !GICR_WAKER_PSLEEP_BIT as u32);
+    // while (self[current_cpu().id].WAKER.get() & GICR_WAKER_CASLEEP_BIT as u32) != 0 {}
+
+    // let gicd = arm_gic_driver::v3::Gic::new(
+    //     NonNull::new(phys_to_virt(GICD_BASE).as_mut_ptr()).unwrap(),
+    //     NonNull::new(phys_to_virt(GICC_BASE).as_mut_ptr()).unwrap(),
+    //     arm_gic_driver::v3::Security::OneNS,
+    // );
+    // let interface = gicd.cpu_interface();
+
+    // GICD.lock().replace(gicd);
+    // GICC.lock().replace(interface);
+
+    // disable_irqs();
 }
 
 /// Initializes GICR on secondary CPUs.
