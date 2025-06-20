@@ -186,6 +186,7 @@ dependencies = [
  "axfs",
  "axhal",
  "axio",
+ "axipi",
  "axlog",
  "axmm",
  "axnet",
@@ -233,6 +234,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "arm-gic-driver"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b64cb8c26b31e99dd8af567e32f33b9f5f69673170f4416c3c80c4f0a09187b4"
+dependencies = [
+ "aarch64-cpu 10.0.0",
+ "bitflags 2.9.1",
+ "enum_dispatch",
+ "log",
+ "rdif-intc",
+ "tock-registers 0.9.0",
+]
+
+[[package]]
 name = "arm_gicv2"
 version = "0.1.0"
 source = "git+https://github.com/arceos-hypervisor/arm_gicv2?branch=debin%2F2vm_timer#0ad077649e030b9836a5dc55a5a01b1fd0246e11"
@@ -266,7 +281,7 @@ checksum = "e539d3fca749fcee5236ab05e93a52867dd549cc157c8cb7f99595f3cedffdb5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.98",
+ "syn 2.0.102",
 ]
 
 [[package]]
@@ -355,7 +370,7 @@ dependencies = [
 name = "axdriver"
 version = "0.1.0"
 dependencies = [
- "arm-gic-driver",
+ "arm-gic-driver 0.13.1",
  "axalloc",
  "axconfig",
  "axdma",
@@ -449,6 +464,7 @@ dependencies = [
  "axdriver",
  "axfs",
  "axhal",
+ "axipi",
  "axlog",
  "axnet",
  "axruntime",
@@ -518,7 +534,7 @@ name = "axhal"
 version = "0.1.0"
 dependencies = [
  "aarch64-cpu 10.0.0",
- "arm-gic-driver",
+ "arm-gic-driver 0.13.0",
  "arm_gicv2",
  "arm_pl011",
  "arm_pl031",
@@ -526,6 +542,7 @@ dependencies = [
  "axconfig",
  "axerrno",
  "axlog",
+ "axplat-dyn",
  "bitflags 2.9.1",
  "cfg-if",
  "cortex-a",
@@ -543,13 +560,12 @@ dependencies = [
  "ns16550a",
  "page_table_entry",
  "page_table_multiarch",
- "percpu",
- "raw-cpuid 11.4.0",
- "riscv",
+ "percpu 0.2.0 (git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base)",
+ "raw-cpuid 11.5.0",
+ "riscv 0.12.1",
  "riscv_goldfish",
  "riscv_plic",
  "sbi-rt",
- "smccc",
  "static_assertions",
  "tock-registers 0.9.0",
  "x2apic 0.4.3",
@@ -576,7 +592,7 @@ dependencies = [
  "kspin",
  "lazyinit",
  "log",
- "percpu",
+ "percpu 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -648,7 +664,7 @@ name = "axplat-dyn"
 version = "0.1.0"
 dependencies = [
  "axalloc",
- "percpu",
+ "percpu 0.2.0 (git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base)",
  "somehal",
 ]
 
@@ -662,6 +678,7 @@ dependencies = [
  "axdriver",
  "axfs",
  "axhal",
+ "axipi",
  "axlog",
  "axmm",
  "axnet",
@@ -670,7 +687,7 @@ dependencies = [
  "crate_interface",
  "ctor_bare",
  "kernel_guard",
- "percpu",
+ "percpu 0.2.0 (git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base)",
 ]
 
 [[package]]
@@ -709,7 +726,7 @@ dependencies = [
  "lazyinit",
  "log",
  "memory_addr",
- "percpu",
+ "percpu 0.2.0 (git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base)",
  "rand",
  "scheduler",
  "timer_list",
@@ -1136,6 +1153,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 
 [[package]]
+name = "embedded-hal-nb"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fba4268c14288c828995299e59b12babdbe170f6c6d73731af1b4648142e8605"
+dependencies = [
+ "embedded-hal",
+ "nb",
+]
+
+[[package]]
 name = "enum_dispatch"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1144,7 +1171,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.98",
+ "syn 2.0.102",
 ]
 
 [[package]]
@@ -1725,6 +1752,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
+name = "percpu"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01e56c0c558952222967b592899f98765b48590e7bd7403bfd7075f73afc6ed6"
+dependencies = [
+ "cfg-if",
+ "percpu_macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spin 0.9.8",
+ "x86",
+]
+
+[[package]]
+name = "percpu"
+version = "0.2.0"
+source = "git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base#b4e3aa009de9af579eb06bac9bca2bd1a6b1d0b8"
+dependencies = [
+ "cfg-if",
+ "kernel_guard",
+ "percpu_macros 0.2.0 (git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base)",
+ "spin 0.9.8",
+ "x86",
+]
+
+[[package]]
+name = "percpu_macros"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a9f4cc54a2e471ff72f1499461ba381ad4eae9cbd60d29c258545b995e406e0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.102",
+]
+
+[[package]]
 name = "percpu_macros"
 version = "0.2.0"
 source = "git+https://github.com/arceos-hypervisor/percpu.git?branch=custom-base#b4e3aa009de9af579eb06bac9bca2bd1a6b1d0b8"
@@ -1743,10 +1805,23 @@ dependencies = [
  "bitflags 2.9.1",
  "bytemuck",
  "cfg-if",
- "kernel_guard",
- "percpu_macros",
- "spin",
- "x86",
+ "lazy_static",
+ "log",
+ "nb",
+ "rlsf",
+ "spin 0.10.0",
+ "tock-registers 0.9.0",
+]
+
+[[package]]
+name = "phytium_driver_block"
+version = "0.1.0"
+source = "git+https://github.com/arceos-hypervisor/phytium_driver_crates?rev=a8bc146#a8bc14608dc13935d28a2ae8841b7b0680f821b9"
+dependencies = [
+ "dma-api 0.2.2",
+ "log",
+ "phytium-mci",
+ "rdrive",
 ]
 
 [[package]]
@@ -1905,6 +1980,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "rdif-block"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64356f70a70a70a9c361da15e1009056964960dd71f04a6a82939f949d8293cb"
+dependencies = [
+ "cfg-if",
+ "rdif-base",
+]
+
+[[package]]
+name = "rdif-clk"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47cb808121537a6cfb55df232efdaf18e173fa9805e3285cfe21b8837a0d541b"
+dependencies = [
+ "rdif-base",
+]
+
+[[package]]
 name = "rdif-def"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1922,6 +2016,68 @@ dependencies = [
  "cfg-if",
  "rdif-base",
  "thiserror",
+]
+
+[[package]]
+name = "rdif-power"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae3b558cfcd7b9bd2515fe8ffa4c235c2627f969a0466391ef8b6726a82e4f5b"
+dependencies = [
+ "rdif-base",
+]
+
+[[package]]
+name = "rdif-serial"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65e0dcf317551e78e506170b03292b5b986ecc7a2c8e7e4578c6b79c8c3be2ba"
+dependencies = [
+ "futures",
+ "rdif-base",
+ "spin_on",
+ "thiserror",
+]
+
+[[package]]
+name = "rdif-systick"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c01ea42012cc743e5ac4b9660056e4f6aa8873d49c7a28e1886c1929bba81e95"
+dependencies = [
+ "rdif-base",
+]
+
+[[package]]
+name = "rdrive"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45635f196415cc8f05d4f37e4328bd8751b964420c15399344d6bf880540b31b"
+dependencies = [
+ "fdt-parser",
+ "log",
+ "paste",
+ "rdif-base",
+ "rdif-block",
+ "rdif-clk",
+ "rdif-intc",
+ "rdif-power",
+ "rdif-serial",
+ "rdif-systick",
+ "rdrive-macros",
+ "spin 0.10.0",
+ "thiserror",
+]
+
+[[package]]
+name = "rdrive-macros"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a410b3ae41803a2290e428d0683dcef451def835e9cbf293c203c3ac86b19e18"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.102",
 ]
 
 [[package]]

@@ -272,6 +272,12 @@ fn init_interrupt() {
         #[cfg(feature = "multitask")]
         axtask::on_timer_tick();
     });
+
+    #[cfg(feature = "ipi")]
+    {
+        axipi::init();
+        axhal::irq::register_handler(axhal::irq::IPI_IRQ_NUM, axipi::ipi_handler);
+    }
     axhal::time::enable_irq();
 
     // Enable IRQs before starting app
