@@ -6,6 +6,9 @@ use core::{alloc::Layout, cell::UnsafeCell, fmt, ptr::NonNull};
 #[cfg(feature = "preempt")]
 use core::sync::atomic::AtomicUsize;
 
+#[cfg(feature = "smp")]
+use core::sync::atomic::AtomicU32;
+
 use kspin::SpinNoIrq;
 use memory_addr::{VirtAddr, align_up_4k};
 
@@ -51,6 +54,9 @@ pub struct TaskInner {
     /// Mark whether the task is in the wait queue.
     in_wait_queue: AtomicBool,
 
+    /// Used to indicate the CPU ID where the task is running or will run.
+    #[cfg(feature = "smp")]
+    cpu_id: AtomicU32,
     /// Used to indicate whether the task is running on a CPU.
     #[cfg(feature = "smp")]
     on_cpu: AtomicBool,
@@ -227,6 +233,8 @@ impl TaskInner {
             #[cfg(feature = "irq")]
             timer_ticket_id: AtomicU64::new(0),
             #[cfg(feature = "smp")]
+            cpu_id: AtomicU32::new(0),
+            #[cfg(feature = "smp")]
             on_cpu: AtomicBool::new(false),
             #[cfg(feature = "preempt")]
             need_resched: AtomicBool::new(false),
@@ -396,6 +404,19 @@ impl TaskInner {
     #[inline]
     pub(crate) const unsafe fn ctx_mut_ptr(&self) -> *mut TaskContext {
         self.ctx.get()
+    }
+
+    #[cfg(feature = "smp")]
+    pub fn set_cpu_id(&self, cpu_id: u32) {
+        self.cpu_id.store(cpu_id, Ordering::Release);
+    }
+
+    /// Returns the CPU ID where the task is running or will run.
+    ///
+    /// Note: the task may not be running on the CPU, it just exists in the run queue.
+    #[cfg(feature = "smp")]
+    pub fn cpu_id(&self) -> u32 {
+        self.cpu_id.load(Ordering::Acquire)
     }
 
     /// Returns whether the task is running on a CPU.
