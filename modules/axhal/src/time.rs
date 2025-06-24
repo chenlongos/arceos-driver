@@ -9,6 +9,8 @@ pub use core::time::Duration;
 pub type TimeValue = Duration;
 
 #[cfg(feature = "irq")]
+pub use crate::platform::irq::TIMER_IRQ_NUM;
+#[cfg(feature = "irq")]
 pub use crate::platform::time::set_oneshot_timer;
 pub use crate::platform::time::{current_ticks, epochoffset_nanos, nanos_to_ticks, ticks_to_nanos};
 

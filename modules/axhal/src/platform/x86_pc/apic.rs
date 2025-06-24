@@ -24,6 +24,9 @@ pub const MAX_IRQ_COUNT: usize = 256;
 /// The timer IRQ number.
 pub const TIMER_IRQ_NUM: usize = APIC_TIMER_VECTOR as usize;
 
+/// The IPI IRQ number.
+pub const IPI_IRQ_NUM: usize = APIC_IPI_VECTOR as usize;
+
 const IO_APIC_BASE: PhysAddr = pa!(0xFEC0_0000);
 
 static LOCAL_APIC: SyncUnsafeCell<MaybeUninit<LocalApic>> =
