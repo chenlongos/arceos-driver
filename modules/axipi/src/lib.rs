@@ -11,7 +11,7 @@ use lazyinit::LazyInit;
 use kspin::SpinNoIrq;
 
 use axhal::cpu::this_cpu_id;
-use axhal::irq::IPI_IRQ_NUM;
+use axhal::irq::{send_sgi_all, send_sgi_one, IPI_IRQ_NUM};
 
 mod event;
 mod queue;

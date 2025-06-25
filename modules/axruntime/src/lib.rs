@@ -189,6 +189,16 @@ pub extern "C" fn rust_main(cpu_id: usize) -> ! {
     {
         // info!("Initialize interrupt handlers...");
         // init_interrupt();
+        #[cfg(any(not(target_arch = "aarch64"), not(feature = "hv")))]
+        {
+            info!("Initialize interrupt handlers...");
+            init_interrupt();
+        }
+
+        #[cfg(all(target_arch = "aarch64", feature = "hv"))]
+        {
+            info!("`init_interrupt` skipped for aarch64 hypervisor.");
+        }
     }
 
     #[cfg(all(feature = "tls", not(feature = "multitask")))]
@@ -277,9 +287,9 @@ fn init_interrupt() {
     #[cfg(feature = "ipi")]
     {
         axipi::init();
-        axhal::irq::register_handler(axhal::irq::IPI_IRQ_NUM, axipi::ipi_handler);
+        axhal::irq::register_handler(0, axipi::ipi_handler);
     }
-    axhal::time::enable_irq();
+    //axhal::time::enable_irq();
 
     // Enable IRQs before starting app
     axhal::arch::enable_irqs();

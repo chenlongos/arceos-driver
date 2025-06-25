@@ -94,7 +94,7 @@ pub fn platform_init() {
     unsafe {
         axplat_dyn::init();
         #[cfg(feature = "irq")]
-        irq::init();
+        irq::init_primary();
 
         axplat_dyn::driver::probe_all(true).unwrap();
     }

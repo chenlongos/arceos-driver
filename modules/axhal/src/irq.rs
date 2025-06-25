@@ -30,7 +30,6 @@ pub(crate) fn dispatch_irq_common(irq_num: usize) {
     }
 }
 
-#[cfg(not(plat_dyn))]
 /// Platform-independent IRQ handler registration.
 ///
 /// It also enables the IRQ if the registration succeeds. It returns `false` if
@@ -44,23 +43,8 @@ pub(crate) fn register_handler_common(irq_num: usize, handler: IrqHandler) -> bo
     warn!("register handler for IRQ {} failed", irq_num);
     false
 }
+/// TODO: change to dyn 
 
-#[cfg(plat_dyn)]
-/// Platform-independent IRQ handler registration.
-///
-/// It also enables the IRQ if the registration succeeds. It returns `false` if
-/// the registration failed.
-#[allow(dead_code)]
-pub(crate) fn register_handler_common(
-    irq_config: crate::platform::IrqConfig,
-    handler: IrqHandler,
-) -> bool {
-    if IRQ_HANDLER_TABLE.register_handler(irq_config.irq.into(), handler) {
-        return true;
-    }
-    warn!("register handler for IRQ {:?} failed", irq_config);
-    false
-}
 
 /// Core IRQ handling routine, registered at `axhal::trap::IRQ`,
 /// which dispatches IRQs to registered handlers.
