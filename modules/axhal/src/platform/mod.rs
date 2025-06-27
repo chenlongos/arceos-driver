@@ -57,6 +57,16 @@ cfg_if::cfg_if! {
         pub fn timer_irq_config() -> IrqConfig {
             axplat_dyn::systick::get().irq()
         }
+
+        #[cfg(feature = "ipi")]
+        pub fn ipi_irq_config() -> IrqConfig {
+            use crate::driver::systick::Trigger;
+            IrqConfig {
+                irq: 1.into(),
+                trigger: Trigger::EdgeBoth,
+                is_private: true,
+            }
+        }
     }else{
         /// Returns the number of CPUs.
         pub fn cpu_count() -> usize {
@@ -66,6 +76,11 @@ cfg_if::cfg_if! {
         #[cfg(feature = "irq")]
         pub fn timer_irq_config() -> usize {
             crate::platform::irq::TIMER_IRQ_NUM
+        }
+
+        pub fn ipi_irq_config() -> usize {
+            use crate::irq;
+            irq::IPI_IRQ_NUM
         }
     }
 }

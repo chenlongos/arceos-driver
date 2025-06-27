@@ -1,16 +1,21 @@
 extern crate alloc;
 
-use crate::{arch::disable_irqs, cpu::this_cpu_id, irq::IrqHandler, mem::phys_to_virt};
 use alloc::boxed::Box;
+use crate::{arch::disable_irqs, cpu::this_cpu_id, irq::IrqHandler, mem::phys_to_virt};
 use arm_gic_driver::*;
+//use axconfig::devices::{GICD_PADDR, GICR_PADDR, UART_IRQ};
+const GICD_PADDR: usize = 0x08000000;
+const GICR_PADDR: usize = 0x080a0000;
+const UART_IRQ: usize = 1;
 
-#[cfg(feature = "hv")]
-use arm_gicv2::GicHypervisorInterface;
-use arm_gicv2::{InterruptType, translate_irq};
-
-use axconfig::devices::{GICD_PADDR, GICR_PADDR, UART_IRQ};
+use axplat_dyn::driver::intc::*;
+use axplat_dyn::mem::cpu_idx_to_id;
+static mut IRQ_CHIP: u64 = 0;
 use core::{panic, ptr::NonNull};
 use kspin::SpinNoIrq;
+use arm_gicv2::{translate_irq, InterruptType};
+#[cfg(feature = "hv")]
+use arm_gicv2::GicHypervisorInterface;
 use memory_addr::{MemoryAddr, PhysAddr};
 
 use aarch64_cpu::registers::{ICC_SRE_EL2, SCTLR_EL3::I};
@@ -38,39 +43,57 @@ const GICR_BASE: PhysAddr = pa!(GICR_PADDR);
 static GICD: SpinNoIrq<Option<arm_gic_driver::v3::Gic>> = SpinNoIrq::new(None);
 static GICR: SpinNoIrq<Option<Box<dyn arm_gic_driver::local::Interface>>> = SpinNoIrq::new(None);
 
+fn modify_chip<F: Fn(&mut Boxed)>(f: F) {
+    let mut g = axplat_dyn::driver::get_dev!(Intc)
+        .unwrap()
+        .spin_try_borrow_by(0.into())
+        .unwrap();
+    (f)(&mut g);
+}
+
+pub(crate) fn cpu_interface() -> &'static local::Boxed {
+    axplat_dyn::irq::interface(unsafe { IRQ_CHIP }.into()).expect("no cpu interface")
+}
+
 /// Enables or disables the given IRQ.
-pub fn set_enable(irq_num: usize, enabled: bool) {
-    use arm_gic_driver::local::cap::ConfigLocalIrq;
+pub fn set_enable(irq: IrqConfig, enabled: bool) {
+    // ArceOS cpu_id is actually cpu_idx
+    let cpu_idx = crate::cpu::this_cpu_id();
 
-    let mut gicd = GICD.lock();
-    let d = gicd.as_mut().unwrap();
+    trace!("cpu[{:?}] Irq set enable: {:?} {}", cpu_idx, irq, enabled);
 
-    if irq_num < 32 {
-        trace!("GICR set enable: {} {}", irq_num, enabled);
-
-        if enabled {
-            d.get_gicr().irq_enable(irq_num.into()).unwrap();
-        } else {
-            d.get_gicr().irq_disable(irq_num.into()).unwrap();
-        }
-    } else {
-        trace!("GICD set enable: {} {}", irq_num, enabled);
-
-        if enabled {
-            d.irq_enable(irq_num.into()).unwrap();
-        } else {
-            d.irq_disable(irq_num.into()).unwrap();
+    if irq.is_private {
+        if let local::Capability::ConfigLocalIrq(cpu) = cpu_interface().capability() {
+            if enabled {
+                cpu.set_trigger(irq.irq, irq.trigger).unwrap();
+                cpu.irq_enable(irq.irq).unwrap();
+            } else {
+                cpu.irq_disable(irq.irq).unwrap();
+            }
+            return;
         }
     }
+
+    let cpu_hard_id = cpu_idx_to_id(cpu_idx.into());
+
+    modify_chip(|c| {
+        if enabled {
+            c.set_target_cpu(irq.irq, cpu_hard_id.raw().into()).unwrap();
+            c.set_trigger(irq.irq, irq.trigger).unwrap();
+            c.irq_enable(irq.irq).unwrap();
+        } else {
+            c.irq_disable(irq.irq).unwrap();
+        }
+    });
 }
 
 /// Registers an IRQ handler for the given IRQ.
 ///
 /// It also enables the IRQ if the registration succeeds. It returns `false` if
 /// the registration failed.
-pub fn register_handler(irq_num: usize, handler: IrqHandler) -> bool {
-    trace!("register handler irq {}", irq_num);
-    crate::irq::register_handler_common(irq_num, handler)
+pub fn register_handler(irq_config: IrqConfig, handler: IrqHandler) -> bool {
+    debug!("register handler irq {:?}", irq_config);
+    crate::irq::register_handler_common(irq_config, handler)
 }
 
 /// Fetches the IRQ number.
@@ -254,7 +277,7 @@ pub fn send_sgi_all(vector: usize) {
 }
 
 // dummy implementation
-pub struct MyVgic {}
+pub struct MyVgic{}
 
 /// Initializes GICD, GICC on the primary CPU.
 pub(crate) fn init_primary() {

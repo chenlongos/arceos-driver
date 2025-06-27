@@ -173,7 +173,15 @@ pub extern "C" fn rust_main(cpu_id: usize) -> ! {
         let all_devices = axdriver::init_drivers();
 
         #[cfg(feature = "fs")]
-        axfs::init_filesystems(all_devices.block);
+        {
+            use axfs::BootArgsFileSystem;
+            use axhal::bootargs;
+
+            let bootargs = bootargs::bootargs().unwrap_or("");
+            info!("Boot args: {}", bootargs);
+            let rootargs = BootArgsFileSystem::parse_from_bootargs(bootargs).unwrap();
+            axfs::init_filesystems(all_devices.block, rootargs);
+        }
 
         #[cfg(feature = "net")]
         axnet::init_network(all_devices.net);
@@ -187,18 +195,8 @@ pub extern "C" fn rust_main(cpu_id: usize) -> ! {
 
     #[cfg(feature = "irq")]
     {
-        // info!("Initialize interrupt handlers...");
-        // init_interrupt();
-        #[cfg(any(not(target_arch = "aarch64"), not(feature = "hv")))]
-        {
-            info!("Initialize interrupt handlers...");
-            init_interrupt();
-        }
-
-        #[cfg(all(target_arch = "aarch64", feature = "hv"))]
-        {
-            info!("`init_interrupt` skipped for aarch64 hypervisor.");
-        }
+        info!("Initialize interrupt handlers...");
+        init_interrupt();
     }
 
     #[cfg(all(feature = "tls", not(feature = "multitask")))]
@@ -260,7 +258,6 @@ fn init_allocator() {
 fn init_interrupt() {
     use axhal::time::TIMER_IRQ_NUM;
     // Setup timer interrupt handler
-
     #[percpu::def_percpu]
     static NEXT_DEADLINE: u64 = 0;
 
@@ -278,7 +275,7 @@ fn init_interrupt() {
         axhal::time::set_oneshot_timer(deadline);
     }
 
-    axhal::irq::register_handler(TIMER_IRQ_NUM, || {
+    axhal::irq::register_handler(axhal::time::irq_config(), || {
         update_timer();
         #[cfg(feature = "multitask")]
         axtask::on_timer_tick();
@@ -287,12 +284,15 @@ fn init_interrupt() {
     #[cfg(feature = "ipi")]
     {
         axipi::init();
-        axhal::irq::register_handler(0, axipi::ipi_handler);
+        //info!("axhal::irq::IPI_IRQ_NUM is {}", axhal::irq::IPI_IRQ_NUM);
+        axhal::irq::register_handler(axhal::irq::ipi_config(), axipi::ipi_handler);
     }
-    //axhal::time::enable_irq();
+    info!("axipi::init() done.");
+    axhal::time::enable_irq();
 
     // Enable IRQs before starting app
     axhal::arch::enable_irqs();
+    info!("enable_irqs");
 }
 
 #[cfg(all(feature = "tls", not(feature = "multitask")))]

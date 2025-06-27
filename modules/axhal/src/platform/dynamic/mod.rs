@@ -7,8 +7,6 @@ mod aarch64_timer;
 #[cfg(feature = "irq")]
 pub(crate) mod irq;
 
-
-
 unsafe extern "C" {
     fn rust_main(cpu_id: usize);
     #[cfg(feature = "smp")]
@@ -92,9 +90,11 @@ pub mod misc {
 /// For example, the interrupt controller and the timer.
 pub fn platform_init() {
     unsafe {
+        use aarch64_cpu::registers::*;
         axplat_dyn::init();
+        ICH_HCR_EL2.modify(ICH_HCR_EL2::En.val(1));
         #[cfg(feature = "irq")]
-        irq::init_primary();
+        irq::init();
 
         axplat_dyn::driver::probe_all(true).unwrap();
     }
