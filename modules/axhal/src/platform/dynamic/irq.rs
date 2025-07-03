@@ -1,43 +1,13 @@
-extern crate alloc;
-
-use crate::{arch::disable_irqs, cpu::this_cpu_id, irq::IrqHandler, mem::phys_to_virt};
-use aarch64_cpu::registers::{ICC_SRE_EL2, SCTLR_EL3::I};
-use alloc::boxed::Box;
-use arm_gicv2::{InterruptType, translate_irq};
+use crate::irq::IrqHandler;
 use axplat_dyn::driver::intc::*;
 use axplat_dyn::mem::cpu_idx_to_id;
-use core::{panic, ptr::NonNull};
-use kspin::SpinNoIrq;
-use memory_addr::{MemoryAddr, PhysAddr};
-
-use tock_registers::interfaces::{Readable, Writeable};
 /// The maximum number of IRQs.
 pub const MAX_IRQ_COUNT: usize = 2048;
 
 static mut IRQ_CHIP: u64 = 0;
-const UART_IRQ: usize = 1;
 
-const GICD_PADDR: usize = 0x08000000;
-const GICR_PADDR: usize = 0x080a0000;
-
-const GICD_BASE: PhysAddr = pa!(GICD_PADDR);
-const GICR_BASE: PhysAddr = pa!(GICR_PADDR);
-
-static GICD: SpinNoIrq<Option<arm_gic_driver::v3::Gic>> = SpinNoIrq::new(None);
-static GICR: SpinNoIrq<Option<Box<dyn arm_gic_driver::local::Interface>>> = SpinNoIrq::new(None);
-
-/// The UART IRQ number.
-pub const UART_IRQ_NUM: usize = arm_gic_driver::IntId::spi(UART_IRQ as u32).to_u32() as usize;
-/// The IPI IRQ number.
-pub const IPI_IRQ_NUM: usize = translate_irq(1, InterruptType::SGI).unwrap();
-
-#[cfg(not(feature = "hv"))]
-/// The timer IRQ number.
-pub const TIMER_IRQ_NUM: usize = arm_gic_driver::IntId::ppi(14).to_u32() as usize;
-
-#[cfg(feature = "hv")]
-/// Non-secure EL2 Physical Timer irq number.
-pub const TIMER_IRQ_NUM: usize = arm_gic_driver::IntId::ppi(10).to_u32() as usize;
+#[cfg(feature = "ipi")]
+pub const IPI_IRQ_NUM: usize = 0;
 
 pub(crate) unsafe fn init() {
     let chip = axplat_dyn::driver::get_dev!(Intc).unwrap();
@@ -105,35 +75,6 @@ pub fn set_enable(irq: IrqConfig, enabled: bool) {
     });
 }
 
-/// Reads and returns the value of the given aarch64 system register.
-macro_rules! read_sysreg {
-    ($name:ident) => {
-        {
-            let mut value: u64;
-            unsafe{::core::arch::asm!(
-                concat!("mrs {value:x}, ", ::core::stringify!($name)),
-                value = out(reg) value,
-                options(nomem, nostack),
-            );}
-            value
-        }
-    }
-}
-
-/// Writes the given value to the given aarch64 system register.
-macro_rules! write_sysreg {
-    ($name:ident, $value:expr) => {
-        {
-            let v: u64 = $value;
-            unsafe{::core::arch::asm!(
-                concat!("msr ", ::core::stringify!($name), ", {value:x}"),
-                value = in(reg) v,
-                options(nomem, nostack),
-            )}
-        }
-    }
-}
-
 /// Registers an IRQ handler for the given IRQ.
 ///
 /// It also enables the IRQ if the registration succeeds. It returns `false` if
@@ -170,39 +111,32 @@ pub fn fetch_irq() -> usize {
     icc.ack().map(|o| o.into()).unwrap_or_default()
 }
 
-#[cfg(feature = "hv")]
-pub fn inject_interrupt(vector: usize) {
-    // mask
-    const LR_VIRTIRQ_MASK: usize = (1 << 32) - 1;
-
-    let elsr: u64 = read_sysreg!(ich_elrsr_el2);
-    let vtr = read_sysreg!(ich_vtr_el2) as usize;
-    let lr_num: usize = (vtr & 0xf) + 1;
-    let mut free_lr = -1 as isize;
-    for i in 0..lr_num {
-        // find a free list register
-        if (1 << i) & elsr > 0 {
-            if free_lr == -1 {
-                free_lr = i as isize;
-            }
-            continue;
-        }
-        let lr_val = read_lr(i) as usize;
-        // if a virtual interrupt is enabled and equals to the physical interrupt irq_id
-        if (lr_val & LR_VIRTIRQ_MASK) == vector {
-            trace!("virtual irq {} enables again", vector);
+/// Reads and returns the value of the given aarch64 system register.
+macro_rules! read_sysreg {
+    ($name:ident) => {
+        {
+            let mut value: u64;
+            unsafe{::core::arch::asm!(
+                concat!("mrs {value:x}, ", ::core::stringify!($name)),
+                value = out(reg) value,
+                options(nomem, nostack),
+            );}
+            value
         }
     }
-    trace!("use free lr {} to inject irq {}", free_lr, vector);
+}
 
-    if free_lr == -1 {
-        panic!("No free list register to inject IRQ {}", vector);
-    } else {
-        let mut val = vector as u64; // vector
-        val |= 1 << 60; // group 1
-        val |= 1 << 62; // state pending
-        // hardware interrupt not supported
-        write_lr(free_lr as usize, val);
+/// Writes the given value to the given aarch64 system register.
+macro_rules! write_sysreg {
+    ($name:ident, $value:expr) => {
+        {
+            let v: u64 = $value;
+            unsafe{::core::arch::asm!(
+                concat!("msr ", ::core::stringify!($name), ", {value:x}"),
+                value = in(reg) v,
+                options(nomem, nostack),
+            )}
+        }
     }
 }
 
@@ -257,6 +191,42 @@ fn write_lr(id: usize, val: u64) {
     }
 }
 
+#[cfg(feature = "hv")]
+pub fn inject_interrupt(vector: usize) {
+    // mask
+    const LR_VIRTIRQ_MASK: usize = (1 << 32) - 1;
+
+    let elsr: u64 = read_sysreg!(ich_elrsr_el2);
+    let vtr = read_sysreg!(ich_vtr_el2) as usize;
+    let lr_num: usize = (vtr & 0xf) + 1;
+    let mut free_lr = -1 as isize;
+    for i in 0..lr_num {
+        // find a free list register
+        if (1 << i) & elsr > 0 {
+            if free_lr == -1 {
+                free_lr = i as isize;
+            }
+            continue;
+        }
+        let lr_val = read_lr(i) as usize;
+        // if a virtual interrupt is enabled and equals to the physical interrupt irq_id
+        if (lr_val & LR_VIRTIRQ_MASK) == vector {
+            trace!("virtual irq {} enables again", vector);
+        }
+    }
+    trace!("use free lr {} to inject irq {}", free_lr, vector);
+
+    if free_lr == -1 {
+        panic!("No free list register to inject IRQ {}", vector);
+    } else {
+        let mut val = vector as u64; // vector
+        val |= 1 << 60; // group 1
+        val |= 1 << 62; // state pending
+        // hardware interrupt not supported
+        write_lr(free_lr as usize, val);
+    }
+}
+
 fn send_sgi_inner(aff3: u8, aff2: u8, aff1: u8, target: u8, vector: usize, to_all: bool) {
     let value = 
         ((vector & 0xF) << 24) |            // vector
@@ -271,19 +241,8 @@ fn send_sgi_inner(aff3: u8, aff2: u8, aff1: u8, target: u8, vector: usize, to_al
 
 /// Sends Software Generated Interrupt (SGI)(s) (usually IPI) to the given dest CPU.
 pub fn send_sgi_one(dest: usize, vector: usize) {
-    #[cfg(platform_family = "aarch64-rk3588j")]
-    {
-        // learnt from hVisor, that rockchip socs follow the 0.0.x.0 affinity scheme
-        // while other socs follow 0.0.0.x
-        //
-        // the best and standard way is reading
-        send_sgi_inner(0, 0, dest as _, 0, vector, false);
-    }
-    #[cfg(not(platform_family = "aarch64-rk3588j"))]
-    {
-        // the default affinity scheme is 0.0.0.x
-        send_sgi_inner(0, 0, 0, dest as _, vector, false);
-    }
+    // the default affinity scheme is 0.0.0.x
+    send_sgi_inner(0, 0, 0, dest as _, vector, false);
 }
 
 /// Sends a broadcast IPI to all CPUs.
