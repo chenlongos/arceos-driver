@@ -6,5 +6,16 @@ authors = ["Yuekai Jia <equation618@gmail.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+aarch64-dyn = [
+    "axplat-aarch64-dyn",
+    "axstd/driver-dyn",
+    "axstd/myplat",
+    "axstd/alloc",
+    "axstd/page-alloc-64g",
+]
+
 [dependencies]
+cfg-if = "1.0"
 axstd = { workspace = true, optional = true }
+axplat-aarch64-dyn = { git = "https://github.com/arceos-hypervisor/axplat-aarch64-dyn", features = ["smp", "irq"], optional = true }

@@ -203,6 +203,12 @@ make MYPLAT=axplat-aarch64-raspi SMP=4 A=examples/shell FEATURES=page-alloc-4g,d
 make PLAT_CONFIG=$(pwd)/configs/custom/x86_64-pc-oslab.toml A=examples/httpserver FEATURES=page-alloc-4g,driver-ixgbe,driver-ramdisk SMP=4
 ```
 
+## How to build arceos dynamically
+```bash
+# Build helloworld for axplat-aarch64-dyn
+make MYPLAT=axplat-aarch64-dyn LD_SCRIPT=link.x APP_FEATURES=aarch64-dyn SMP=4 FEATURES=paging
+```
+
 ## How to reuse ArceOS modules in your own project
 
 ```toml
