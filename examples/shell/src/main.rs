@@ -38,6 +38,14 @@ fn print_prompt() {
     std::io::stdout().flush().unwrap();
 }
 
+fn mmc_test() {
+    cmd::run_cmd("ls".as_bytes());
+    cmd::run_cmd("echo mmctestt > test.txt".as_bytes());
+    cmd::run_cmd("ls".as_bytes());
+    cmd::run_cmd("cat test.txt".as_bytes());
+    cmd::run_cmd("rm test.txt".as_bytes());
+}
+
 #[cfg_attr(feature = "axstd", unsafe(no_mangle))]
 fn main() {
     let mut stdin = std::io::stdin();
@@ -45,7 +53,8 @@ fn main() {
 
     let mut buf = [0; MAX_CMD_LEN];
     let mut cursor = 0;
-    cmd::run_cmd("help".as_bytes());
+    // cmd::run_cmd("help".as_bytes());
+    mmc_test();
     print_prompt();
 
     loop {
