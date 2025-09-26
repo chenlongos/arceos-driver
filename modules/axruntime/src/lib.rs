@@ -268,6 +268,7 @@ fn init_interrupt() {
 
     axhal::irq::register(axconfig::devices::TIMER_IRQ, || {
         update_timer();
+        axhal::time::increment_global_ticks(); // 递增全局ticks计数器
         #[cfg(feature = "multitask")]
         axtask::on_timer_tick();
     });

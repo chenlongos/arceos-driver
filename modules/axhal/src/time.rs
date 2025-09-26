@@ -1,5 +1,15 @@
 //! Time-related operations.
 
+use core::sync::atomic::{AtomicU64, Ordering};
+
+/// 全局变量，用于记录计时器中断产生的ticks值
+pub static GLOBAL_TICKS: AtomicU64 = AtomicU64::new(0);
+
+/// 递增全局ticks计数器
+pub fn increment_global_ticks() {
+    GLOBAL_TICKS.fetch_add(1, Ordering::Relaxed);
+}
+
 #[cfg(feature = "irq")]
 pub use axplat::time::set_oneshot_timer;
 pub use axplat::time::{
